@@ -41,7 +41,7 @@ func Load() (*Config, error) {
 	defer func() {
 		if f != nil {
 			if err = f.Close(); err != nil {
-				log.WithError(err).Error("error closing file")
+				log.WithError(err).Error("Error closing config file")
 			}
 		}
 	}()
