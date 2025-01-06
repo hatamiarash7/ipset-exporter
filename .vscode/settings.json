@@ -6,6 +6,7 @@
     "promhttp",
     "samber",
     "sarif",
+    "setcap",
     "styfle",
     "vishvananda"
   ]
