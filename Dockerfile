@@ -8,7 +8,7 @@ ARG TARGETARCH
 WORKDIR /app/
 ADD . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o ipset-exporter cmd/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o ipset-exporter cmd/ipset-exporter/main.go
 
 FROM --platform=${TARGETPLATFORM:-linux/amd64} scratch
 
