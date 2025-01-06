@@ -35,7 +35,9 @@ docker run -d \
     hatamiarash7/ipset-exporter:latest
 ```
 
-The Docker container needs to run with `NET_ADMIN` capability to fetch ipset data. Also, you should run it with `--net host` to access the host network namespace.
+> [!NOTE]
+> The Docker container needs to run with `NET_ADMIN` capability to fetch ipset data.  
+> Also, You should run it with `--net host` to access the host network namespace.
 
 ## Configuration
 
