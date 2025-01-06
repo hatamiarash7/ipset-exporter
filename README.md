@@ -1,5 +1,10 @@
 # Prometheus Exporter for ipset
 
+[![Golang][golang_badge]][golang_link]
+[![Release][release_badge]][release_link]
+[![License][badge_license]][link_license]
+[![Image size][badge_size_latest]][link_docker_hub]
+
 It's a simple [ipset](https://linux.die.net/man/8/ipset) exporter that generate [Prometheus](https://prometheus.io/) metrics from ipset lists. Every metric has a label `set` that shows the ipset list name with the number of elements in the list as the value.
 
 ```text
@@ -69,3 +74,12 @@ Don't be shy and reach out to us if you want to contribute 😉
 ## Issues
 
 Each project may have many problems. Contributing to the better development of this project by reporting them. 👍
+
+[golang_badge]: https://img.shields.io/badge/Made_With-Golang-blue
+[golang_link]: https://go.dev/
+[release_badge]: https://github.com/hatamiarash7/ipset-exporter/actions/workflows/release.yml/badge.svg
+[release_link]: https://github.com/hatamiarash7/ipset-exporter/actions/workflows/release.yaml
+[link_license]: https://github.com/hatamiarash7/ipset-exporter/blob/master/LICENSE
+[badge_license]: https://img.shields.io/github/license/hatamiarash7/ipset-exporter.svg?longCache=true
+[badge_size_latest]: https://img.shields.io/docker/image-size/hatamiarash7/ipset-exporter/latest?maxAge=30
+[link_docker_hub]: https://hub.docker.com/r/hatamiarash7/ipset-exporter/
