@@ -28,12 +28,14 @@ Or you can use Docker:
 ```bash
 docker run -d \
     --name ipset-exporter \
-    -p 4613:4613 \
+    --net host \
     -v /path/to/config.yml:/app/configs/config.yml \
     -e CONFIG_FILE=/app/configs/config.yml \
     --cap-add=NET_ADMIN \
     hatamiarash7/ipset-exporter:latest
 ```
+
+The Docker container needs to run with `NET_ADMIN` capability to fetch ipset data. Also, you should run it with `--net host` to access the host network namespace.
 
 ## Configuration
 
