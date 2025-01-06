@@ -12,7 +12,7 @@ ipset_count{set="my-set-1"} 41
 ipset_count{set="my-set-2"} 23
 ```
 
-## How-to
+## How-to 🚀
 
 This exporter needs `NET_ADMIN` to fetch ipset data using netlink. You can build and run this exporter as a single binary:
 
@@ -39,7 +39,7 @@ docker run -d \
 > The Docker container needs to run with `NET_ADMIN` capability to fetch ipset data.  
 > Also, You should run it with `--net host` to access the host network namespace.
 
-## Configuration
+## Configuration 🛠
 
 You can configure the exporter using a YAML file. The example configuration is:
 
