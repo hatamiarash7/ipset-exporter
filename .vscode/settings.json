@@ -1,6 +1,8 @@
 {
   "cSpell.words": [
     "aquasecurity",
+    "GOARCH",
+    "ldflags",
     "netlink",
     "promauto",
     "promhttp",
