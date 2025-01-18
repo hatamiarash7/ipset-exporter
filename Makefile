@@ -31,4 +31,8 @@ update-deps:
 	$(GO) get -u all
 	$(GO) mod tidy
 
+run:
+	sudo setcap cap_net_admin+ep $@
+	$(BIN_DIR)/ipset-exporter
+
 .PHONY: all format check lint clean test update-deps
