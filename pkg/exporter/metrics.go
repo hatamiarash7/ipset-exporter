@@ -3,6 +3,7 @@ package exporter
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -30,29 +31,55 @@ func (a *App) registerMetrics() {
 func (a *App) serveMetrics(names []string) {
 	a.metricsServer = &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", a.config.App.Host, a.config.App.Port),
-		Handler: metricsHandler(names),
+		Handler: metricsHandler(),
 	}
 	go func() {
 		log.WithFields(log.Fields{
 			"host": a.config.App.Host,
 			"port": a.config.App.Port,
 		}).Info("Serving metrics http server")
+
+		// Update metrics before starting the server
+		a.updateMetrics(names)
+
 		if err := a.metricsServer.ListenAndServe(); err != http.ErrServerClosed {
 			log.WithError(err).Error()
 		}
 	}()
 }
 
-func metricsHandler(names []string) http.HandlerFunc {
-	promHandler := promhttp.Handler()
+func (a *App) updateMetricsPeriodically(names []string, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 
-	ipsetList, _ := netlink.IpsetListAll()
+	for {
+		select {
+		case <-ticker.C:
+			a.updateMetrics(names)
+		case <-a.stopChan:
+			log.Info("Stopping metrics updater")
+			return
+		}
+	}
+}
+
+func (a *App) updateMetrics(names []string) {
+	ipsetList, err := netlink.IpsetListAll()
+	if err != nil {
+		log.WithError(err).Error("Failed to list ipsets")
+		return
+	}
+
 	for _, ipset := range ipsetList {
 		// If the ipset name is in the list of names to be exported, or if the list contains "all"
 		if lo.Contains(names, ipset.SetName) || lo.Contains(names, "all") {
 			IPSetList.WithLabelValues(ipset.SetName).Set(float64(len(ipset.Entries)))
 		}
 	}
+}
+
+func metricsHandler() http.HandlerFunc {
+	promHandler := promhttp.Handler()
 
 	return func(rw http.ResponseWriter, r *http.Request) {
 		promHandler.ServeHTTP(rw, r)

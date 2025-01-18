@@ -50,12 +50,14 @@ app:
     log_level: info
 
 ipset:
+    update_interval: 15
     names:
         - my-set-1
         - my-set-2
 ```
 
-You can choose any ipset name that you want to monitor or use the `all` keyword to monitor all ipset lists.
+-   You can choose any ipset name that you want to monitor or use the `all` keyword to monitor all ipset lists.
+-   There is a `update_interval` field that set the interval in seconds to update the metrics.
 
 ---
 

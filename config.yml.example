@@ -4,5 +4,6 @@ app:
   log_level: info
 
 ipset:
+  update_interval: 15
   names:
     - my-set

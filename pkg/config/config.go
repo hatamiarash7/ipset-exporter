@@ -18,7 +18,8 @@ type Config struct {
 	} `yaml:"app"`
 
 	IPSet struct {
-		Names []string `yaml:"names"`
+		UpdateInterval int      `yaml:"update_interval"`
+		Names          []string `yaml:"names"`
 	} `yaml:"ipset"`
 }
 
