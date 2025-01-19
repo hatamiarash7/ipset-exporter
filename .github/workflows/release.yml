@@ -64,9 +64,9 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
 
       - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.29.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}
           exit-code: "0"
           ignore-unfixed: true
           vuln-type: "os,library"
