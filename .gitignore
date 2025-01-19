@@ -23,3 +23,4 @@ go.work
 bin
 ipset
 config.yml
+test_config.yml

@@ -18,7 +18,7 @@ lint:
 clean:
 	rm -rf $(BIN_DIR)
 
-test: test-data
+test:
 	$(GO) test -v ./...
 
 $(BIN_DIR)/%: cmd/% $(SOURCES)
