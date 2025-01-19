@@ -73,6 +73,10 @@ func (a *App) updateMetrics(names []string) {
 	for _, ipset := range ipsetList {
 		// If the ipset name is in the list of names to be exported, or if the list contains "all"
 		if lo.Contains(names, ipset.SetName) || lo.Contains(names, "all") {
+			log.WithFields(log.Fields{
+				"set":     ipset.SetName,
+				"entries": len(ipset.Entries),
+			}).Debug("Updating metrics")
 			IPSetList.WithLabelValues(ipset.SetName).Set(float64(len(ipset.Entries)))
 		}
 	}
