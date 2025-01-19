@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
 
+permissions:
+  actions: write
+  contents: read
+  security-events: write
+
 env:
   IMAGE_NAME: hatamiarash7/ipset-exporter
 
