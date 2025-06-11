@@ -13,19 +13,31 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// IPSetList is a gauge vector that holds the number of entries in each ipset
-var IPSetList *prometheus.GaugeVec
+var ipsetListAll = netlink.IpsetListAll
+
+// IPSetEntries is a gauge vector that holds the number of entries in each ipset
+var IPSetEntries *prometheus.GaugeVec
+
+// IPSetUpdateErrors is a counter that holds the total number of errors encountered during ipset updates
+var IPSetUpdateErrors prometheus.Counter
 
 func (a *App) registerMetrics() {
-	IPSetList = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:      "count",
+	IPSetEntries = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name:      "entries_count",
 		Namespace: "ipset",
-		Help:      "The total number of ipset entries",
-	}, []string{"set"})
+		Help:      "The total number of entries in an ipset",
+	}, []string{"set", "type"})
 
-	prometheus.Register(IPSetList)
-	prometheus.Unregister(collectors.NewGoCollector())
-	prometheus.Unregister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	IPSetUpdateErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "update_errors_total",
+		Namespace: "ipset",
+		Help:      "The total number of errors encountered during ipset updates.",
+	})
+
+	prometheus.MustRegister(IPSetEntries)
+	prometheus.MustRegister(IPSetUpdateErrors)
+	_ = prometheus.Unregister(collectors.NewGoCollector())
+	_ = prometheus.Unregister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 }
 
 func (a *App) serveMetrics(names []string) {
@@ -64,9 +76,10 @@ func (a *App) updateMetricsPeriodically(names []string, interval time.Duration) 
 }
 
 func (a *App) updateMetrics(names []string) {
-	ipsetList, err := netlink.IpsetListAll()
+	ipsetList, err := ipsetListAll()
 	if err != nil {
 		log.WithError(err).Error("Failed to list ipsets")
+		IPSetUpdateErrors.Inc()
 		return
 	}
 
@@ -75,9 +88,10 @@ func (a *App) updateMetrics(names []string) {
 		if lo.Contains(names, ipset.SetName) || lo.Contains(names, "all") {
 			log.WithFields(log.Fields{
 				"set":     ipset.SetName,
+				"type":    ipset.TypeName,
 				"entries": len(ipset.Entries),
 			}).Debug("Updating metrics")
-			IPSetList.WithLabelValues(ipset.SetName).Set(float64(len(ipset.Entries)))
+			IPSetEntries.WithLabelValues(ipset.SetName, ipset.TypeName).Set(float64(len(ipset.Entries)))
 		}
 	}
 }

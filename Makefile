@@ -13,7 +13,7 @@ check: format
 	git diff-index --quiet HEAD
 
 lint:
-	golangci-lint run --timeout 1m0s
+	./bin/golangci-lint run --timeout 1m0s
 
 clean:
 	rm -rf $(BIN_DIR)
@@ -31,8 +31,8 @@ update-deps:
 	$(GO) get -u all
 	$(GO) mod tidy
 
-run:
-	sudo setcap cap_net_admin+ep $@
+run: $(BIN_DIR)/ipset-exporter
+	sudo setcap cap_net_admin+ep $(BIN_DIR)/ipset-exporter
 	$(BIN_DIR)/ipset-exporter
 
 .PHONY: all format check lint clean test update-deps

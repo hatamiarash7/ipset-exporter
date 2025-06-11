@@ -8,9 +8,11 @@
 It's a simple [ipset](https://linux.die.net/man/8/ipset) exporter that generate [Prometheus](https://prometheus.io/) metrics from ipset lists. Every metric has a label `set` that shows the ipset list name with the number of elements in the list as the value.
 
 ```text
-ipset_count{set="my-set-1"} 41
-ipset_count{set="my-set-2"} 23
+ipset_entries_count{set="my-set-1",type="hash:ip"} 41
+ipset_entries_count{set="my-set-2",type="hash:net"} 23
 ```
+
+Additionally, the exporter exposes `ipset_update_errors_total`, a counter that tracks the number of errors encountered when trying to fetch ipset data.
 
 ## How-to 🚀
 
