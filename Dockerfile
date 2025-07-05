@@ -6,11 +6,11 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /app/
-ADD . .
+COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o ipset-exporter cmd/ipset-exporter/main.go
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} scratch
+FROM --platform=${BUILDPLATFORM:-linux/amd64} scratch
 
 ARG DATE_CREATED
 ARG APP_VERSION
