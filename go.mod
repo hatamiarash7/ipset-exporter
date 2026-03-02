@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/prometheus/client_golang v1.23.2
-	github.com/samber/lo v1.52.0
+	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/vishvananda/netlink v1.3.1
