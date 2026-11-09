@@ -1,5 +1,10 @@
 # Prometheus Exporter for ipset
 
+[![Golang][golang_badge]][golang_link]
+[![Release][release_badge]][release_link]
+[![License][badge_license]][link_license]
+[![Image size][badge_size_latest]][link_docker_hub]
+
 A lightweight Linux exporter that exposes [ipset](https://ipset.netfilter.org/) entry counts to [Prometheus](https://prometheus.io/).
 
 The exporter reads set headers directly over netlink, without spawning the `ipset` CLI or downloading every member. It collects in the background and serves cached, consistent snapshots, so scraping does not trigger additional kernel queries.
@@ -198,3 +203,12 @@ Open an issue or pull request on [GitHub](https://github.com/hatamiarash7/ipset-
 ## License
 
 [MIT](LICENSE) © Arash Hatami.
+
+[golang_badge]: https://img.shields.io/badge/Made_With-Golang-blue
+[golang_link]: https://go.dev/
+[release_badge]: https://github.com/hatamiarash7/ipset-exporter/actions/workflows/release.yml/badge.svg
+[release_link]: https://github.com/hatamiarash7/ipset-exporter/actions/workflows/release.yaml
+[link_license]: https://github.com/hatamiarash7/ipset-exporter/blob/master/LICENSE
+[badge_license]: https://img.shields.io/github/license/hatamiarash7/ipset-exporter.svg?longCache=true
+[badge_size_latest]: https://img.shields.io/docker/image-size/hatamiarash7/ipset-exporter/latest?maxAge=30
+[link_docker_hub]: https://hub.docker.com/r/hatamiarash7/ipset-exporter/
