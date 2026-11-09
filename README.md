@@ -104,25 +104,25 @@ CONFIG_FILE=/etc/ipset-exporter/config.yml ./bin/ipset-exporter
 
 ## Metrics and endpoints
 
-| Metric | Type | Meaning |
-| --- | --- | --- |
-| `ipset_count{set="name"}` | Gauge | Kernel-reported number of entries in an existing selected set |
-| `ipset_up` | Gauge | `1` if the latest collection succeeded, otherwise `0` |
-| `ipset_collection_duration_seconds` | Gauge | Duration of the latest collection |
-| `ipset_collection_errors_total` | Counter | Failed collections since startup |
-| `ipset_last_success_timestamp_seconds` | Gauge | Last successful collection time; `0` before any success |
-| `ipset_exporter_build_info{version,revision,build_date}` | Gauge | Build metadata, always `1` |
+| Metric                                                   | Type    | Meaning                                                       |
+| -------------------------------------------------------- | ------- | ------------------------------------------------------------- |
+| `ipset_count{set="name"}`                                | Gauge   | Kernel-reported number of entries in an existing selected set |
+| `ipset_up`                                               | Gauge   | `1` if the latest collection succeeded, otherwise `0`         |
+| `ipset_collection_duration_seconds`                      | Gauge   | Duration of the latest collection                             |
+| `ipset_collection_errors_total`                          | Counter | Failed collections since startup                              |
+| `ipset_last_success_timestamp_seconds`                   | Gauge   | Last successful collection time; `0` before any success       |
+| `ipset_exporter_build_info{version,revision,build_date}` | Gauge   | Build metadata, always `1`                                    |
 
 Collection starts immediately and repeats on the configured interval. Counts are replaced atomically after each poll. Deleted or unselected sets disappear; existing empty sets report zero. A failed collection removes all count series, sets `ipset_up` to zero, and is retried at the next interval. A successful collection of zero sets still reports `ipset_up=1`; this indicates collection health, not whether configured names exist.
 
 Counts come from the kernel's set headers. For sets with entry timeouts, expired entries may remain in the reported total until kernel garbage collection removes them.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `/metrics` | Prometheus metrics; remains available on collection failure |
-| `/healthz` | HTTP process liveness (`200`) |
-| `/readyz` | Collection readiness (`200` after success, `503` before success or after failure) |
-| `/` | Link to metrics |
+| Endpoint   | Purpose                                                                           |
+| ---------- | --------------------------------------------------------------------------------- |
+| `/metrics` | Prometheus metrics; remains available on collection failure                       |
+| `/healthz` | HTTP process liveness (`200`)                                                     |
+| `/readyz`  | Collection readiness (`200` after success, `503` before success or after failure) |
+| `/`        | Link to metrics                                                                   |
 
 Prometheus configuration example:
 

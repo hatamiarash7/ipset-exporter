@@ -1,12 +1,18 @@
 {
   "cSpell.words": [
     "aquasecurity",
+    "BUILDINFO",
+    "fuzztime",
     "GOARCH",
+    "GOFMT",
+    "healthz",
     "ipsets",
     "ldflags",
+    "libcap",
     "netlink",
     "promauto",
     "promhttp",
+    "readyz",
     "samber",
     "sarif",
     "setcap",
