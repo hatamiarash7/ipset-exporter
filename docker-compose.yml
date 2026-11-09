@@ -1,0 +1,33 @@
+services:
+  ipset-exporter:
+    image: hatamiarash7/ipset-exporter:${IMAGE_TAG:-latest}
+    # For a local build: docker compose build --pull
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+        VCS_REF: ${VCS_REF:-unknown}
+        DATE_CREATED: ${DATE_CREATED:-unknown}
+    restart: unless-stopped
+    network_mode: host
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    pids_limit: 64
+    stop_grace_period: 10s
+    volumes:
+      - type: bind
+        source: ./config.yml
+        target: /etc/ipset-exporter/config.yml
+        read_only: true
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

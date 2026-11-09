@@ -1,33 +1,54 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.27 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG TARGETOS
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY pkg/ ./pkg/
+
+ARG TARGETOS=linux
 ARG TARGETARCH
+ARG TARGETVARIANT
+ARG APP_VERSION=dev
+ARG VCS_REF=unknown
+ARG DATE_CREATED=unknown
 
-WORKDIR /app/
-COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
+    go build -trimpath -buildvcs=false \
+    -ldflags="-s -w -X github.com/hatamiarash7/ipset-exporter/internal/buildinfo.Version=${APP_VERSION} -X github.com/hatamiarash7/ipset-exporter/internal/buildinfo.Revision=${VCS_REF} -X github.com/hatamiarash7/ipset-exporter/internal/buildinfo.BuildDate=${DATE_CREATED}" \
+    -o /out/ipset-exporter ./cmd/ipset-exporter
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o ipset-exporter cmd/ipset-exporter/main.go
+FROM scratch
 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} scratch
+ARG APP_VERSION=dev
+ARG VCS_REF=unknown
+ARG DATE_CREATED=unknown
 
-ARG DATE_CREATED
-ARG APP_VERSION
-ENV APP_VERSION=$APP_VERSION
+LABEL org.opencontainers.image.created="${DATE_CREATED}" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.authors="Arash Hatami <info@arash-hatami.ir>" \
+      org.opencontainers.image.vendor="hatamiarash7" \
+      org.opencontainers.image.title="ipset-exporter" \
+      org.opencontainers.image.description="Prometheus exporter for Linux ipset entry counts" \
+      org.opencontainers.image.source="https://github.com/hatamiarash7/ipset-exporter" \
+      org.opencontainers.image.url="https://github.com/hatamiarash7/ipset-exporter" \
+      org.opencontainers.image.documentation="https://github.com/hatamiarash7/ipset-exporter#readme" \
+      org.opencontainers.image.licenses="MIT"
 
-LABEL org.opencontainers.image.created=$DATE_CREATED
-LABEL org.opencontainers.version="$APP_VERSION"
-LABEL org.opencontainers.image.authors="Arash Hatami <info@arash-hatami.ir>"
-LABEL org.opencontainers.image.vendor="hatamiarash7"
-LABEL org.opencontainers.image.title="ipset-exporter"
-LABEL org.opencontainers.image.description="It's a simple Prometheus exporter for ipset"
-LABEL org.opencontainers.image.source="https://github.com/hatamiarash7/ipset-exporter"
-LABEL org.opencontainers.image.url="https://github.com/hatamiarash7/ipset-exporter"
-LABEL org.opencontainers.image.documentation="https://github.com/hatamiarash7/ipset-exporter"
+WORKDIR /app
+ENV CONFIG_FILE=/etc/ipset-exporter/config.yml
+COPY --from=builder /out/ipset-exporter /app/ipset-exporter
+COPY config.yml.example /etc/ipset-exporter/config.yml
+COPY LICENSE /LICENSE
 
-WORKDIR /app/
-
-COPY --from=builder /app/ipset-exporter /app/ipset-exporter
-
+# Root plus a narrowly scoped runtime NET_ADMIN capability is needed for netlink.
+# No shell or package manager is included in the runtime image.
+# hadolint ignore=DL3002
+USER 0:0
+EXPOSE 4613
 ENTRYPOINT ["/app/ipset-exporter"]
