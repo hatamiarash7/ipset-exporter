@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make check test-race build
+      - run: ./bin/ipset-exporter -version
+      - run: ./bin/ipset-exporter -config config.yml.example -check-config
+      - name: Check module files are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - uses: docker/setup-buildx-action@v4
+      - name: Build container
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ipset-exporter:ci
+          build-args: |
+            APP_VERSION=ci
+            VCS_REF=${{ github.sha }}
+      - run: docker run --rm ipset-exporter:ci -version
+      - run: docker run --rm ipset-exporter:ci -check-config

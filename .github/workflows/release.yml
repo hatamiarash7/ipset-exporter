@@ -30,12 +30,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check source and tests before publishing
+        run: make check test-race
+
       - name: Get version
-        run: echo "APP_VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
+        run: echo "APP_VERSION=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
 
       - name: Get Current Date
         id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v4
@@ -58,6 +67,7 @@ jobs:
           platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v6,linux/arm/v7
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
+            VCS_REF=${{ github.sha }}
             DATE_CREATED=${{ steps.date.outputs.date }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}
