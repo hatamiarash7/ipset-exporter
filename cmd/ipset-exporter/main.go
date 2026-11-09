@@ -2,49 +2,68 @@ package main
 
 import (
 	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/hatamiarash7/ipset-exporter/internal/buildinfo"
 	"github.com/hatamiarash7/ipset-exporter/pkg/config"
 	"github.com/hatamiarash7/ipset-exporter/pkg/exporter"
 	"github.com/hatamiarash7/ipset-exporter/pkg/logger"
 	log "github.com/sirupsen/logrus"
 )
 
-var configs *config.Config
-
-func init() {
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		log.WithError(err).Fatal("Failed to load configs")
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	if err := run(ctx, os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		log.WithError(err).Error("Exporter stopped")
+		os.Exit(1)
 	}
-	configs = cfg
-
-	// Initialize logger
-	logger.Init(cfg.App.LogLevel)
 }
 
-func main() {
-	app := exporter.NewExporter(configs)
-
-	if err := app.Boot(); err != nil {
-		log.WithError(err).Fatal("Could not boot application")
+func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	path := os.Getenv("CONFIG_FILE")
+	if path == "" {
+		path = "config.yml"
 	}
-
-	closeSignal := make(chan os.Signal, 1)
-	signal.Notify(closeSignal, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
-
-	<-closeSignal
-
-	log.Info("Shutdown ...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := app.Shutdown(ctx); err != nil {
-		log.Fatal("Server shutdown problem:", err)
+	flags := flag.NewFlagSet("ipset-exporter", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	flags.StringVar(&path, "config", path, "Configuration file path (or CONFIG_FILE)")
+	version := flags.Bool("version", false, "Print build information and exit")
+	check := flags.Bool("check-config", false, "Validate configuration and exit")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
 	}
-
-	<-ctx.Done()
+	if flags.NArg() != 0 {
+		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
+	}
+	if *version {
+		_, err := fmt.Fprintf(stdout, "ipset-exporter %s (revision=%s, build_date=%s)\n", buildinfo.Version, buildinfo.Revision, buildinfo.BuildDate)
+		return err
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		return err
+	}
+	if *check {
+		_, err := fmt.Fprintln(stdout, "Configuration is valid")
+		return err
+	}
+	if err := logger.Init(cfg.App.LogLevel); err != nil {
+		return err
+	}
+	app, err := exporter.NewExporter(cfg)
+	if err != nil {
+		return err
+	}
+	log.WithField("version", buildinfo.Version).Info("Starting ipset exporter")
+	return app.Run(ctx)
 }

@@ -1,9 +1,10 @@
 app:
-  host: 0.0.0.0
+  # Use 0.0.0.0 (or ::) when Prometheus scrapes from another host.
+  host: 127.0.0.1
   port: 4613
   log_level: info
 
 ipset:
   update_interval: 15
   names:
-    - my-set
+    - all

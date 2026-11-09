@@ -1,91 +1,86 @@
 package exporter
 
 import (
-	"fmt"
-	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
-// IPSetList is a gauge vector that holds the number of entries in each ipset
-var IPSetList *prometheus.GaugeVec
-
-func (a *App) registerMetrics() {
-	IPSetList = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:      "count",
-		Namespace: "ipset",
-		Help:      "The total number of ipset entries",
-	}, []string{"set"})
-
-	prometheus.Register(IPSetList)
-	prometheus.Unregister(collectors.NewGoCollector())
-	prometheus.Unregister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+// snapshot is immutable after publication, so a scrape cannot observe a partial update.
+type snapshot struct {
+	counts      map[string]uint32
+	up          float64
+	duration    float64
+	lastSuccess float64
+	errors      uint64
 }
 
-func (a *App) serveMetrics(names []string) {
-	a.metricsServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", a.config.App.Host, a.config.App.Port),
-		Handler: metricsHandler(),
+type collector struct {
+	state       atomic.Pointer[snapshot]
+	list        func() (map[string]uint32, error)
+	names       map[string]struct{}
+	all         bool
+	count       *prometheus.Desc
+	up          *prometheus.Desc
+	duration    *prometheus.Desc
+	lastSuccess *prometheus.Desc
+	errors      *prometheus.Desc
+}
+
+func newCollector(names []string, list func() (map[string]uint32, error)) *collector {
+	c := &collector{
+		list: list, names: make(map[string]struct{}, len(names)),
+		count:       prometheus.NewDesc("ipset_count", "Number of entries reported by the kernel for an ipset.", []string{"set"}, nil),
+		up:          prometheus.NewDesc("ipset_up", "Whether the most recent ipset collection succeeded.", nil, nil),
+		duration:    prometheus.NewDesc("ipset_collection_duration_seconds", "Duration of the most recent ipset collection.", nil, nil),
+		lastSuccess: prometheus.NewDesc("ipset_last_success_timestamp_seconds", "Unix timestamp of the last successful ipset collection, or zero.", nil, nil),
+		errors:      prometheus.NewDesc("ipset_collection_errors_total", "Total number of failed ipset collections.", nil, nil),
 	}
-	go func() {
-		log.WithFields(log.Fields{
-			"host": a.config.App.Host,
-			"port": a.config.App.Port,
-		}).Info("Serving metrics http server")
-
-		// Update metrics before starting the server
-		a.updateMetrics(names)
-
-		if err := a.metricsServer.ListenAndServe(); err != http.ErrServerClosed {
-			log.WithError(err).Error()
-		}
-	}()
+	for _, name := range names {
+		c.names[name] = struct{}{}
+		c.all = c.all || name == "all"
+	}
+	c.state.Store(&snapshot{})
+	return c
 }
 
-func (a *App) updateMetricsPeriodically(names []string, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			a.updateMetrics(names)
-		case <-a.stopChan:
-			log.Info("Stopping metrics updater")
-			return
-		}
+func (c *collector) Describe(ch chan<- *prometheus.Desc) {
+	for _, desc := range []*prometheus.Desc{c.count, c.up, c.duration, c.lastSuccess, c.errors} {
+		ch <- desc
 	}
 }
 
-func (a *App) updateMetrics(names []string) {
-	ipsetList, err := netlink.IpsetListAll()
+func (c *collector) Collect(ch chan<- prometheus.Metric) {
+	s := c.state.Load()
+	for name, count := range s.counts {
+		ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, float64(count), name)
+	}
+	ch <- prometheus.MustNewConstMetric(c.up, prometheus.GaugeValue, s.up)
+	ch <- prometheus.MustNewConstMetric(c.duration, prometheus.GaugeValue, s.duration)
+	ch <- prometheus.MustNewConstMetric(c.lastSuccess, prometheus.GaugeValue, s.lastSuccess)
+	ch <- prometheus.MustNewConstMetric(c.errors, prometheus.CounterValue, float64(s.errors))
+}
+
+// update has one writer: the polling goroutine. Failed or deleted sets never retain stale counts.
+func (c *collector) update() {
+	start := time.Now()
+	counts, err := c.list()
+	previous := c.state.Load()
+	next := &snapshot{duration: time.Since(start).Seconds(), lastSuccess: previous.lastSuccess, errors: previous.errors}
 	if err != nil {
-		log.WithError(err).Error("Failed to list ipsets")
-		return
-	}
-
-	for _, ipset := range ipsetList {
-		// If the ipset name is in the list of names to be exported, or if the list contains "all"
-		if lo.Contains(names, ipset.SetName) || lo.Contains(names, "all") {
-			log.WithFields(log.Fields{
-				"set":     ipset.SetName,
-				"entries": len(ipset.Entries),
-			}).Debug("Updating metrics")
-			IPSetList.WithLabelValues(ipset.SetName).Set(float64(len(ipset.Entries)))
+		next.errors++
+		log.WithError(err).Error("Failed to collect ipset headers")
+	} else {
+		next.up = 1
+		next.lastSuccess = float64(time.Now().UnixNano()) / 1e9
+		next.counts = make(map[string]uint32, len(counts))
+		for name, count := range counts {
+			if _, selected := c.names[name]; c.all || selected {
+				next.counts[name] = count
+			}
 		}
 	}
-}
-
-func metricsHandler() http.HandlerFunc {
-	promHandler := promhttp.Handler()
-
-	return func(rw http.ResponseWriter, r *http.Request) {
-		promHandler.ServeHTTP(rw, r)
-	}
+	c.state.Store(next)
 }
