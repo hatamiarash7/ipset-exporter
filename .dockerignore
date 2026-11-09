@@ -9,9 +9,6 @@
 !pkg/
 !pkg/**
 !config.yml.example
-!LICENSE
-!Dockerfile
-!.dockerignore
 **/*_test.go
 **/testdata/**
 **/test_config.yml

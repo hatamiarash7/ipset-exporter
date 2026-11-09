@@ -29,22 +29,21 @@ ARG VCS_REF=unknown
 ARG DATE_CREATED=unknown
 
 LABEL org.opencontainers.image.created="${DATE_CREATED}" \
-      org.opencontainers.image.version="${APP_VERSION}" \
-      org.opencontainers.image.revision="${VCS_REF}" \
-      org.opencontainers.image.authors="Arash Hatami <info@arash-hatami.ir>" \
-      org.opencontainers.image.vendor="hatamiarash7" \
-      org.opencontainers.image.title="ipset-exporter" \
-      org.opencontainers.image.description="Prometheus exporter for Linux ipset entry counts" \
-      org.opencontainers.image.source="https://github.com/hatamiarash7/ipset-exporter" \
-      org.opencontainers.image.url="https://github.com/hatamiarash7/ipset-exporter" \
-      org.opencontainers.image.documentation="https://github.com/hatamiarash7/ipset-exporter#readme" \
-      org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.version="${APP_VERSION}" \
+    org.opencontainers.image.revision="${VCS_REF}" \
+    org.opencontainers.image.authors="Arash Hatami <info@arash-hatami.ir>" \
+    org.opencontainers.image.vendor="hatamiarash7" \
+    org.opencontainers.image.title="ipset-exporter" \
+    org.opencontainers.image.description="Prometheus exporter for Linux ipset entry counts" \
+    org.opencontainers.image.source="https://github.com/hatamiarash7/ipset-exporter" \
+    org.opencontainers.image.url="https://github.com/hatamiarash7/ipset-exporter" \
+    org.opencontainers.image.documentation="https://github.com/hatamiarash7/ipset-exporter#readme" \
+    org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
 ENV CONFIG_FILE=/etc/ipset-exporter/config.yml
 COPY --from=builder /out/ipset-exporter /app/ipset-exporter
 COPY config.yml.example /etc/ipset-exporter/config.yml
-COPY LICENSE /LICENSE
 
 # Root plus a narrowly scoped runtime NET_ADMIN capability is needed for netlink.
 # No shell or package manager is included in the runtime image.
